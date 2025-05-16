@@ -2,7 +2,8 @@
 ;;;; ===================================================
 
 
-(ql:quickload "hunchentoot")
+(load (sb-ext:posix-getenv "ASDF"))
+(asdf:load-system 'hunchentoot)
 (require "uiop")
 
 
