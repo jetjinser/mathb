@@ -6,14 +6,51 @@
 (asdf:load-system 'hunchentoot)
 (require "uiop")
 
+(defmacro defopt (var default-value &optional
+                                   (env-var (string-upcase (symbol-name var)))
+                                   docstring)
+  "Define a global variable `VAR` that can be set from the environment variable `ENV-VAR`.
+   If the environment variable is not set, use `DEFAULT-VALUE`.
+   Supports:
+   - \"True\" → t
+   - \"False\" → nil
+   - #p\"...\" → pathname
+   - \"...\" → string
+   - 123 → number"
+  `(defvar ,var
+     (let ((env-value (uiop:getenv ,env-var)))
+       (if env-value
+           (parse-env-value env-value)
+           ,default-value))
+     ,docstring))
+
+;; Helper function to parse environment variable values
+(defun parse-env-value (env-value)
+  (cond
+    ;; Boolean handling
+    ((string-equal (string-upcase env-value) "TRUE") t)
+    ((string-equal (string-upcase env-value) "FALSE") nil)
+    ;; Pathname (#p"...")
+    ((and (>= (length env-value) 3)
+          (char= (char env-value 0) #\#)
+          (char= (char env-value 1) #\p)
+          (char= (char env-value 2) #\"))
+     (let ((path-str (subseq env-value 3 (1- (length env-value)))))
+       (pathname path-str)))
+    ;; Number (integer or float)
+    ((ignore-errors (parse-integer env-value :junk-allowed t))
+     (let ((num (read-from-string env-value)))
+       (if (numberp num) num (error "Not a valid number: ~a" env-value))))
+    ;; String (fallback)
+    (t env-value)))
 
 ;;; Special Modes
 ;;; -------------
 
-(defvar *log-mode* t
+(defopt *log-mode* t "MB_LOG_MODE"
   "Write logs iff true.")
 
-(defvar *main-mode* t
+(defopt *main-mode* t "MB_MAIN_MODE"
   "Run main function iff true.")
 
 
@@ -123,10 +160,10 @@
 ;;; Tool Definitions
 ;;; ----------------
 
-(defvar *data-directory* "/opt/data/mathb/"
+(defopt *data-directory* "/opt/data/mathb/" "MB_DATA_DIRECTORY"
   "Directory where post files and data are written to and read from.")
 
-(defvar *log-directory* "/opt/log/mathb/"
+(defopt *log-directory* "/opt/log/mathb/" "MB_LOG_DIRECTORY"
   "Directory where log files are written to.")
 
 (defun log-file-path ()
@@ -310,7 +347,7 @@
 ;;; Post Control
 ;;; ------------
 
-(defvar *last-post-time* 0
+(defopt *last-post-time* 0 "MB_LAST_POST_TIME"
   "The universal-time at which the last post was successfully submitted.")
 
 (defvar *flood-table* (make-hash-table :test #'equal :synchronized t)
@@ -536,4 +573,10 @@
   (sleep most-positive-fixnum))
 
 (when *main-mode*
+  (format *error-output* "log-mode:       ~@a~%" *log-mode*)
+  (format *error-output* "main-mode:      ~@a~%" *main-mode*)
+  (format *error-output* "data-directory: ~@a~%" *data-directory*)
+  (format *error-output* "log-directory:  ~@a~%" *log-directory*)
+  (format *error-output* "last-post-time: ~@a~%" *last-post-time*)
+  (format *error-output* "flood-table:    ~@a~%" *flood-table*)
   (main))
