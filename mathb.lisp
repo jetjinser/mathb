@@ -57,6 +57,9 @@
 ;;; General Definitions
 ;;; -------------------
 
+(defopt *dist-directory* (uiop:getcwd) "MB_DIST_DIRECTORY"
+  "Directory where dist location.")
+
 (defun universal-time-string (universal-time-seconds)
   "Return given universal time in yyyy-mm-dd HH:MM:SS +0000 format."
   (multiple-value-bind (sec min hour date month year)
@@ -76,9 +79,13 @@
   "Create a new directory along with its parents."
   (ensure-directories-exist path))
 
-(defun read-file (filename)
+(defun read-file (path)
   "Read file and close the file."
-  (uiop:read-file-string filename))
+  (let ((absolute-path
+         (or (uiop:absolute-pathname-p path)
+             (merge-pathnames path *dist-directory*))))
+    (format *error-output* "path: ~a~%" absolute-path)
+    (uiop:read-file-string absolute-path)))
 
 (defun write-file (filename text)
   "Write text to file and close the file."
@@ -563,7 +570,8 @@
                                  :address "127.0.0.1"
                                  :port 4242
                                  :access-log-destination (log-file-path))))
-    (setf (hunchentoot:acceptor-document-root acceptor) #p"_live/")
+    (setf (hunchentoot:acceptor-document-root acceptor)
+          (merge-pathnames #p"_live/" *dist-directory*))
     (hunchentoot:start acceptor)))
 
 (defun main ()
@@ -577,6 +585,7 @@
   (format *error-output* "main-mode:      ~@a~%" *main-mode*)
   (format *error-output* "data-directory: ~@a~%" *data-directory*)
   (format *error-output* "log-directory:  ~@a~%" *log-directory*)
+  (format *error-output* "dist-directory: ~@a~%" *dist-directory*)
   (format *error-output* "last-post-time: ~@a~%" *last-post-time*)
   (format *error-output* "flood-table:    ~@a~%" *flood-table*)
   (main))
