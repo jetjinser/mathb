@@ -79,13 +79,14 @@
   "Create a new directory along with its parents."
   (ensure-directories-exist path))
 
+(defun read-dist-file (path)
+  "Read dist file and close the file."
+  (uiop:read-file-string
+    (merge-pathnames path *dist-directory*)))
+
 (defun read-file (path)
   "Read file and close the file."
-  (let ((absolute-path
-         (or (uiop:absolute-pathname-p path)
-             (merge-pathnames path *dist-directory*))))
-    (format *error-output* "path: ~a~%" absolute-path)
-    (uiop:read-file-string absolute-path)))
+  (uiop:read-file-string path))
 
 (defun write-file (filename text)
   "Write text to file and close the file."
@@ -376,7 +377,7 @@
 
 (defun reject-post (title name code reason)
   "Reject post with an error message."
-  (let ((html (read-file "web/html/mathb.html")))
+  (let ((html (read-dist-file "web/html/mathb.html")))
     (write-log "Post rejected: ~a" reason)
     (render-html html "" title name code (error-html reason) "")))
 
@@ -500,12 +501,12 @@
 
 (defun home-page ()
   "Return HTML of the home page."
-  (let ((html (read-file "web/html/mathb.html")))
+  (let ((html (read-dist-file "web/html/mathb.html")))
     (render-html html "" "" "" "" "" "")))
 
 (defun meta-page (directory)
   "Return HTML of meta page."
-  (let ((html (read-file "web/html/mathb.html"))
+  (let ((html (read-dist-file "web/html/mathb.html"))
         (date (simple-date (current-utc-time-string)))
         (code (meta-code directory *last-post-time* *flood-table*))
         (class " class=\"post\""))
@@ -513,7 +514,7 @@
 
 (defun math-page (directory)
   "Return page to client."
-  (let* ((html (read-file "web/html/mathb.html"))
+  (let* ((html (read-dist-file "web/html/mathb.html"))
          (options (read-options directory))
          (slug (parse-integer (subseq (hunchentoot:script-name*) 1)))
          (path (slug-to-path directory slug))
@@ -558,7 +559,7 @@
 (defmethod hunchentoot:acceptor-status-message
     ((acceptor custom-acceptor) http-status-code &key)
   "Custom error page."
-  (let ((html (read-file "web/html/error.html"))
+  (let ((html (read-dist-file "web/html/error.html"))
         (reason-phrase (hunchentoot:reason-phrase http-status-code)))
     (setf html (string-replace "{{ status-code }}" http-status-code html))
     (setf html (string-replace "{{ reason-phrase }}" reason-phrase html))
