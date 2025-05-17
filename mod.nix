@@ -78,6 +78,9 @@ with lib;
         let
           setup-meta = pkgs.writeShellScript "setup-meta" ''
             cp -r ${cfg.package}/meta/data/* ${cfg.environment.MB_DATA_DIRECTORY}
+            chown -R mathb:mathb ${cfg.environment.MB_DATA_DIRECTORY}
+            find ${cfg.environment.MB_DATA_DIRECTORY} -type d -exec chmod 750 {} \;
+            find ${cfg.environment.MB_DATA_DIRECTORY} -type f -exec chmod 640 {} \;
           '';
         in
         {
