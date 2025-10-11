@@ -5,7 +5,7 @@
  :min-name-length 0
  :max-name-length 120
  :min-code-length 1
- :max-code-length 10000
+ :max-code-length 100000
  :global-post-interval 0
  :client-post-interval 0
  :expect ()
